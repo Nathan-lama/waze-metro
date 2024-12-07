@@ -1,101 +1,144 @@
-import Image from "next/image";
+'use client';
+
+import { useEffect, useState, useRef } from 'react';
+import 'leaflet/dist/leaflet.css';
+
+type MarkerData = {
+  lat: number;
+  lng: number;
+  timestamp: string;
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const [markersCount, setMarkersCount] = useState<number>(0);
+  const [mapInstance, setMapInstance] = useState<any>(null);
+  const markersLayerRef = useRef<any>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const L = require('leaflet');
+      const map = L.map('mapid', {
+        tap: false,
+        attributionControl: false
+      }).setView([45.764043, 4.835659], 13);
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+      }).addTo(map);
+
+      markersLayerRef.current = L.layerGroup().addTo(map);
+      setMapInstance(map);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (mapInstance && typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        const { latitude, longitude } = pos.coords;
+        setUserLocation([latitude, longitude]);
+        mapInstance.setView([latitude, longitude], 15);
+
+        const L = require('leaflet');
+        const userIcon = L.icon({
+          iconUrl: "https://leafletjs.com/examples/custom-icons/leaf-green.png",
+          iconSize: [25, 41],
+          iconAnchor: [12, 41]
+        });
+
+        L.marker([latitude, longitude], { icon: userIcon })
+          .addTo(mapInstance)
+          .bindPopup("Vous êtes ici")
+          .openPopup();
+      }, () => {
+        alert("Impossible de récupérer votre position.");
+      });
+    }
+  }, [mapInstance]);
+
+  const loadMarkers = async () => {
+    if (!mapInstance || !markersLayerRef.current) return;
+    const L = require('leaflet');
+
+    const res = await fetch('/api/markers');
+    if (!res.ok) {
+      alert("Erreur lors du chargement des signalements.");
+      return;
+    }
+    const data: MarkerData[] = await res.json();
+
+    markersLayerRef.current.clearLayers();
+    setMarkersCount(data.length);
+
+    const markerIcon = L.icon({
+      iconUrl: "https://leafletjs.com/examples/custom-icons/leaf-red.png",
+      iconSize: [25, 41],
+      iconAnchor: [12, 41]
+    });
+
+    data.forEach(m => {
+      const date = new Date(m.timestamp);
+      const timeString = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      L.marker([m.lat, m.lng], { icon: markerIcon })
+        .addTo(markersLayerRef.current)
+        .bindPopup("Signalement à " + timeString);
+    });
+  };
+
+  useEffect(() => {
+    loadMarkers();
+  }, [mapInstance]);
+
+  const sendSignalement = async () => {
+    if (!userLocation) {
+      alert("Position utilisateur inconnue");
+      return;
+    }
+
+    const res = await fetch('/api/markers', {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ lat: userLocation[0], lng: userLocation[1] })
+    });
+
+    if (!res.ok) {
+      alert("Erreur lors de l'envoi du signalement");
+      return;
+    }
+
+    alert("Signalement envoyé !");
+    await loadMarkers();
+  };
+
+  return (
+    <div className="relative w-screen h-screen bg-black">
+      {/* Carte plein écran */}
+      <div id="mapid" className="w-full h-full" />
+
+      {/* Barre supérieure, semi-transparente */}
+      <div className="absolute top-0 left-0 w-full px-4 py-3 bg-white/80 backdrop-blur-sm flex items-center justify-between z-10">
+        <h1 className="text-sm font-bold text-gray-800">Contrôleurs TCL</h1>
+        <div className="text-sm font-medium text-gray-700">Signalements : {markersCount}</div>
+      </div>
+
+      {/* Bouton flottant principal (Signaler) */}
+      <button
+        onClick={sendSignalement}
+        disabled={!userLocation}
+        className={`absolute bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-lg z-10 ${
+          userLocation ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400'
+        } text-white text-2xl font-bold transition`}
+      >
+        +
+      </button>
+
+      {/* Bouton flottant secondaire (Recharger), juste au-dessus du principal */}
+      <button
+        onClick={loadMarkers}
+        className="absolute bottom-[6rem] right-7 w-10 h-10 rounded-full flex items-center justify-center shadow-md bg-green-600 hover:bg-green-700 text-white text-base font-bold z-10 transition"
+      >
+        ↻
+      </button>
     </div>
   );
 }
