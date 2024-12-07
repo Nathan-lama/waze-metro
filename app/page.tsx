@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react';
 import 'leaflet/dist/leaflet.css';
 
 type MarkerData = {
+  id: number;
   lat: number;
   lng: number;
   timestamp: string;
