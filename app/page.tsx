@@ -111,31 +111,31 @@ export default function Home() {
   };
 
   return (
-    <div className="relative w-screen h-screen bg-black">
-      {/* Carte plein écran */}
-      <div id="mapid" className="w-full h-full" />
+    <div className="relative w-screen h-screen">
+      {/* La carte avec z-0 pour être en arrière-plan */}
+      <div id="mapid" className="w-full h-full z-0" />
 
-      {/* Barre supérieure, semi-transparente */}
-      <div className="absolute top-0 left-0 w-full px-4 py-3 bg-white/80 backdrop-blur-sm flex items-center justify-between z-10">
+      {/* Barre supérieure, au-dessus de la carte */}
+      <div className="absolute top-0 left-0 w-full px-4 py-3 bg-white/80 backdrop-blur-sm flex items-center justify-between z-50">
         <h1 className="text-sm font-bold text-gray-800">Contrôleurs TCL</h1>
         <div className="text-sm font-medium text-gray-700">Signalements : {markersCount}</div>
       </div>
 
-      {/* Bouton flottant principal (Signaler) */}
+      {/* Bouton principal flottant (Signaler), toujours au-dessus de la carte */}
       <button
         onClick={sendSignalement}
         disabled={!userLocation}
-        className={`absolute bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-lg z-10 ${
+        className={`absolute bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-lg z-50 ${
           userLocation ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400'
-        } text-white text-2xl font-bold transition`}
+        } text-white text-2xl font-bold transition pointer-events-auto`}
       >
         +
       </button>
 
-      {/* Bouton flottant secondaire (Recharger), juste au-dessus du principal */}
+      {/* Bouton secondaire flottant (Recharger), juste au-dessus du principal */}
       <button
         onClick={loadMarkers}
-        className="absolute bottom-[6rem] right-7 w-10 h-10 rounded-full flex items-center justify-center shadow-md bg-green-600 hover:bg-green-700 text-white text-base font-bold z-10 transition"
+        className="absolute bottom-[6rem] right-7 w-10 h-10 rounded-full flex items-center justify-center shadow-md bg-green-600 hover:bg-green-700 text-white text-base font-bold z-50 transition pointer-events-auto"
       >
         ↻
       </button>
