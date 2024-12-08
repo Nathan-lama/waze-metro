@@ -61,7 +61,7 @@ export default function Home() {
       userCircle.setLatLng([latitude, longitude]);
     } else {
       const newCircle = L.circle([latitude, longitude], {
-        radius: 500,
+        radius: 200, // Rayon réduit à 200 mètres
         color: '#3388ff',
         fillColor: '#3388ff',
         fillOpacity: 0.1,
@@ -70,7 +70,7 @@ export default function Home() {
       setUserCircle(newCircle);
     }
 
-    map.setView([latitude, longitude], 15);
+    map.setView([latitude, longitude], 17); // Changé de 15 à 17
   };
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export default function Home() {
       const map = L.map('mapid', {
         tap: false,
         attributionControl: false
-      }).setView([45.764043, 4.835659], 16); // Zoom initial augmenté à 16
+      }).setView([45.764043, 4.835659], 18); // Changé de 17 à 18
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
@@ -93,7 +93,7 @@ export default function Home() {
           console.log("Position obtenue:", position);
           const { latitude, longitude } = position.coords;
           updateUserLocation(latitude, longitude, map);
-          map.setView([latitude, longitude], 16); // Zoom ajusté ici aussi
+          map.setView([latitude, longitude], 18); // Changé de 17 à 18
         },
         (error) => {
           console.log("Erreur de géolocalisation détaillée:", {
@@ -322,7 +322,7 @@ export default function Home() {
 
   const centerOnUser = () => {
     if (userLocation && mapInstance) {
-      mapInstance.setView(userLocation, 15);
+      mapInstance.setView(userLocation, 17); // Changé de 15 à 17
     }
   };
 
