@@ -25,6 +25,11 @@ type StationChoice = {
   position: [number, number];
 };
 
+type LineDirection = {
+  name: string;
+  stations: string[];
+};
+
 export default function Home() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [markersCount, setMarkersCount] = useState<number>(0);
@@ -38,15 +43,12 @@ export default function Home() {
   const signalementTypes: SignalementType[] = [
     { id: 'controleur', emoji: '👮', label: 'Contrôleur' },
     { id: 'poule', emoji: '🐔', label: 'Poule égarée sur les rails' },
-    { id: 'danseur', emoji: '💃', label: 'Danseur de breakdance' },
-    { id: 'musicien', emoji: '🎸', label: 'Musicien du métro' },
-    { id: 'retard', emoji: '⏰', label: 'Retard inhabituel' },
-    { id: 'ventriloque', emoji: '🗣️', label: 'Ventriloque avec sa marionnette' },
-    { id: 'magicien', emoji: '🎩', label: 'Magicien qui fait des tours' },
   ];
 
   const [userCircle, setUserCircle] = useState<any>(null);
   const userMarkerRef = useRef<any>(null);
+  const [selectedLine, setSelectedLine] = useState<string | null>(null);
+  const [showDirectionDialog, setShowDirectionDialog] = useState(false);
 
   const updateUserLocation = (latitude: number, longitude: number, map: any) => {
     setUserLocation([latitude, longitude]);
@@ -331,10 +333,36 @@ export default function Home() {
           position: [lat, lng] as [number, number]
         };
       })
-      .filter(station => station.distance <= 200) // Filtrer les stations à moins de 90m
+      .filter(station => station.distance <= 150) // Rayon de 150m
       .sort((a, b) => a.distance - b.distance);
 
-    return stations;
+    // Ne retourner que la station la plus proche si elle existe
+    return stations.length > 0 ? [stations[0]] : [];
+  };
+
+  const findLineDirections = (stationName: string): LineDirection[] => {
+    const metroLines = require('../public/metro_lines_lyon.json');
+    const directions: LineDirection[] = [];
+
+    Object.entries(metroLines).forEach(([line, stations]: [string, string[]]) => {
+      // Rechercher la station complète qui commence par le nom donné
+      const fullStationName = stations.find(s => s.startsWith(stationName));
+      if (fullStationName) {
+        const stationIndex = stations.indexOf(fullStationName);
+        directions.push(
+          {
+            name: `Direction ${stations[stations.length - 1]}`,
+            stations: stations.slice(stationIndex)
+          },
+          {
+            name: `Direction ${stations[0]}`,
+            stations: stations.slice(0, stationIndex + 1).reverse()
+          }
+        );
+      }
+    });
+
+    return directions;
   };
 
   const handleAddSignalement = () => {
@@ -350,6 +378,11 @@ export default function Home() {
   const selectStation = (station: StationChoice) => {
     setSelectedStation(station);
     setShowStationDialog(false);
+    setShowDirectionDialog(true);
+  };
+
+  const selectDirection = () => {
+    setShowDirectionDialog(false);
     setShowTypeDialog(true);
   };
 
@@ -441,6 +474,31 @@ export default function Home() {
             </div>
             <button
               onClick={() => setShowStationDialog(false)}
+              className="mt-4 w-full py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showDirectionDialog && selectedStation && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <h2 className="text-lg font-bold mb-4">Choisir une direction</h2>
+            <div className="flex flex-col gap-2">
+              {findLineDirections(selectedStation.name).map((direction, index) => (
+                <button
+                  key={index}
+                  onClick={selectDirection}
+                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 transition"
+                >
+                  <span className="text-sm font-medium">{direction.name}</span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowDirectionDialog(false)}
               className="mt-4 w-full py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
             >
               Annuler
