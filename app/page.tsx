@@ -79,7 +79,7 @@ export default function Home() {
       const map = L.map('mapid', {
         tap: false,
         attributionControl: false
-      }).setView([45.764043, 4.835659], 13);
+      }).setView([45.764043, 4.835659], 16); // Zoom initial augmenté à 16
 
       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; OpenStreetMap contributors'
@@ -93,6 +93,7 @@ export default function Home() {
           console.log("Position obtenue:", position);
           const { latitude, longitude } = position.coords;
           updateUserLocation(latitude, longitude, map);
+          map.setView([latitude, longitude], 16); // Zoom ajusté ici aussi
         },
         (error) => {
           console.log("Erreur de géolocalisation détaillée:", {
@@ -147,28 +148,65 @@ export default function Home() {
 
       const stationIcon = L.icon({
         iconUrl: '/station-icon.png',
-        iconSize: [16, 16],
-        iconAnchor: [8, 8],
-        popupAnchor: [0, -8]
+        iconSize: [24, 24], // Augmenté de 16x16 à 24x24
+        iconAnchor: [12, 12], // Ajusté pour le nouveau centre
+        popupAnchor: [0, -12]
       });
 
+      // Créer un groupe de stations avec leurs entrées
+      const stationGroups: { [key: string]: { 
+        center: { lat: number, lng: number },
+        name: string,
+        entrances: Array<[number, number]>
+      } } = {};
+
+      // Regrouper les stations par nom
       stationsData.features.forEach((station: any) => {
         if (station.geometry && station.geometry.coordinates) {
           const [lng, lat] = station.geometry.coordinates[0];
           const name = station.properties.nom;
+          
+          // Créer une clé unique pour chaque station (en utilisant le nom sans les détails)
+          const baseStationName = name.split(' - ')[0];
+          
+          if (!stationGroups[baseStationName]) {
+            stationGroups[baseStationName] = {
+              center: { lat, lng }, // Premier point comme centre
+              name: baseStationName,
+              entrances: [[lng, lat]]
+            };
+          } else {
+            stationGroups[baseStationName].entrances.push([lng, lat]);
+            // Calculer le centre moyen de toutes les entrées
+            const entrances = stationGroups[baseStationName].entrances;
+            const center = entrances.reduce(
+              (acc, [lng, lat]) => ({ lat: acc.lat + lat/entrances.length, lng: acc.lng + lng/entrances.length }), 
+              { lat: 0, lng: 0 }
+            );
+            stationGroups[baseStationName].center = center;
+          }
+        }
+      });
 
+      // Afficher les stations
+      Object.values(stationGroups).forEach(station => {
+        // Ajouter le label central
+        L.marker([station.center.lat, station.center.lng], {
+          icon: L.divIcon({
+            className: 'station-label',
+            html: `<div>${station.name}</div>`,
+            iconSize: [120, 20],
+            iconAnchor: [60, 10]
+          })
+        }).addTo(mapInstance);
+
+        // Ajouter les icônes pour chaque entrée
+        station.entrances.forEach(([lng, lat]) => {
           L.marker([lat, lng], { 
             icon: stationIcon,
             zIndexOffset: 1000
-          })
-          .addTo(mapInstance)
-          .bindTooltip(name, {
-            permanent: true,
-            direction: 'top',
-            offset: [0, -8],
-            className: 'station-label'
-          });
-        }
+          }).addTo(mapInstance);
+        });
       });
     }
   }, [mapInstance]);

@@ -2,16 +2,24 @@
 @tailwind components;
 @tailwind utilities;
 
+.station-label div {
+	transform: translateY(-50%);
+	background: white;
+	padding: 2px 6px;
+	border-radius: 4px;
+	display: inline-block;
+}
+
 .emoji-marker-container {
 	background: none !important;
-  }
-  
-  .emoji-marker {
+}
+
+.emoji-marker {
 	font-size: 24px;
 	text-align: center;
 	line-height: 32px;
 	text-shadow: 0 0 3px white;
-  }
+}
 
 :root {
   --background: #ffffff;
