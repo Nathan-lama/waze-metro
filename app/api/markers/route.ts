@@ -6,15 +6,32 @@ export async function GET() {
   return NextResponse.json(markers);
 }
 
-export async function POST(req: Request) {
-  const body = await req.json();
-  const { lat, lng } = body;
-  if (typeof lat === 'number' && typeof lng === 'number') {
-    await prisma.marker.create({
-      data: { lat, lng }
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { lat, lng, type } = body;
+    
+    if (!lat || !lng) {
+      return NextResponse.json(
+        { error: 'Coordonnées manquantes' }, 
+        { status: 400 }
+      );
+    }
+
+    const marker = await prisma.marker.create({
+      data: {
+        lat,
+        lng,
+        type: type || 'controleur' // Valeur par défaut si non fournie
+      }
     });
-    return NextResponse.json({ message: 'Signalement ajouté' }, { status: 201 });
-  } else {
-    return NextResponse.json({ error: 'Coordonnées manquantes ou invalides' }, { status: 400 });
+
+    return NextResponse.json(marker, { status: 201 });
+  } catch (error) {
+    console.error('Error creating marker:', error);
+    return NextResponse.json(
+      { error: 'Erreur serveur' },
+      { status: 500 }
+    );
   }
 }

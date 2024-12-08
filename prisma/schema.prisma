@@ -1,4 +1,3 @@
-
 datasource db {
   provider = "sqlite"
   url      = "file:./dev.db"
@@ -12,5 +11,6 @@ model Marker {
   id        Int      @id @default(autoincrement())
   lat       Float
   lng       Float
+  type      String   @default("controleur")
   timestamp DateTime @default(now())
 }
