@@ -4,7 +4,7 @@
 
 .station-label div {
 	transform: translateY(-50%);
-	background: white;
+	background: #ffffff;
 	padding: 2px 6px;
 	border-radius: 4px;
 	display: inline-block;
