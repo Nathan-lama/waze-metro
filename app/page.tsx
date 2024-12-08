@@ -2,6 +2,8 @@
 
 import { useEffect, useState, useRef } from 'react';
 import 'leaflet/dist/leaflet.css';
+import metroData from '../public/lyon_metro.json';
+import stationsData from '../public/stations_metro.json'; // Importer les données des stations
 
 type MarkerData = {
   id: number;
@@ -15,6 +17,7 @@ export default function Home() {
   const [markersCount, setMarkersCount] = useState<number>(0);
   const [mapInstance, setMapInstance] = useState<any>(null);
   const markersLayerRef = useRef<any>(null);
+  const [permissionStatus, setPermissionStatus] = useState<string>('prompt');
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -30,29 +33,101 @@ export default function Home() {
 
       markersLayerRef.current = L.layerGroup().addTo(map);
       setMapInstance(map);
+
+      // Demander la géolocalisation immédiatement après l'initialisation de la carte
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          console.log("Position obtenue:", position);
+          const { latitude, longitude } = position.coords;
+          setUserLocation([latitude, longitude]);
+          map.setView([latitude, longitude], 15);
+
+          const userMarker = L.marker([latitude, longitude], {
+            icon: L.icon({
+              iconUrl: "https://leafletjs.com/examples/custom-icons/leaf-green.png",
+              iconSize: [25, 41],
+              iconAnchor: [12, 41]
+            })
+          })
+          .addTo(map)
+          .bindPopup("Vous êtes ici")
+          .openPopup();
+        },
+        (error) => {
+          console.log("Erreur de géolocalisation détaillée:", {
+            code: error.code,
+            message: error.message
+          });
+          
+          let errorMessage = "Impossible d'obtenir votre position. ";
+          switch (error.code) {
+            case 1:
+              errorMessage += "Veuillez autoriser la géolocalisation.";
+              break;
+            case 2:
+              errorMessage += "Position indisponible.";
+              break;
+            case 3:
+              errorMessage += "Délai d'attente dépassé.";
+              break;
+          }
+          alert(errorMessage);
+          setPermissionStatus('denied');
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        }
+      );
     }
   }, []);
 
   useEffect(() => {
-    if (mapInstance && typeof window !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(pos => {
-        const { latitude, longitude } = pos.coords;
-        setUserLocation([latitude, longitude]);
-        mapInstance.setView([latitude, longitude], 15);
+    if (mapInstance) {
+      const L = require('leaflet');
 
-        const L = require('leaflet');
-        const userIcon = L.icon({
-          iconUrl: "https://leafletjs.com/examples/custom-icons/leaf-green.png",
-          iconSize: [25, 41],
-          iconAnchor: [12, 41]
-        });
+      const lineColors: { [key: string]: string } = {
+        'A': 'red',
+        'B': 'blue',
+        'C': 'orange',
+        'D': 'green',
+      };
 
-        L.marker([latitude, longitude], { icon: userIcon })
+      const style = (feature: any) => {
+        const lineCode = feature.properties.ligne;
+        return {
+          color: lineColors[lineCode] || 'black',
+          weight: 4,
+        };
+      };
+
+      L.geoJSON(metroData, { style }).addTo(mapInstance);
+
+      const stationIcon = L.icon({
+        iconUrl: '/station-icon.png',
+        iconSize: [16, 16],
+        iconAnchor: [8, 8],
+        popupAnchor: [0, -8]
+      });
+
+      stationsData.features.forEach((station: any) => {
+        if (station.geometry && station.geometry.coordinates) {
+          const [lng, lat] = station.geometry.coordinates[0];
+          const name = station.properties.nom;
+
+          L.marker([lat, lng], { 
+            icon: stationIcon,
+            zIndexOffset: 1000
+          })
           .addTo(mapInstance)
-          .bindPopup("Vous êtes ici")
-          .openPopup();
-      }, () => {
-        alert("Impossible de récupérer votre position.");
+          .bindTooltip(name, {
+            permanent: true,
+            direction: 'top',
+            offset: [0, -8],
+            className: 'station-label'
+          });
+        }
       });
     }
   }, [mapInstance]);
@@ -113,16 +188,13 @@ export default function Home() {
 
   return (
     <div className="relative w-screen h-screen">
-      {/* La carte avec z-0 pour être en arrière-plan */}
       <div id="mapid" className="w-full h-full z-0" />
 
-      {/* Barre supérieure, au-dessus de la carte */}
       <div className="absolute top-0 left-0 w-full px-4 py-3 bg-white/80 backdrop-blur-sm flex items-center justify-between z-50">
         <h1 className="text-sm font-bold text-gray-800">Contrôleurs TCL</h1>
         <div className="text-sm font-medium text-gray-700">Signalements : {markersCount}</div>
       </div>
 
-      {/* Bouton principal flottant (Signaler), toujours au-dessus de la carte */}
       <button
         onClick={sendSignalement}
         disabled={!userLocation}
@@ -133,13 +205,19 @@ export default function Home() {
         +
       </button>
 
-      {/* Bouton secondaire flottant (Recharger), juste au-dessus du principal */}
       <button
         onClick={loadMarkers}
         className="absolute bottom-[6rem] right-7 w-10 h-10 rounded-full flex items-center justify-center shadow-md bg-green-600 hover:bg-green-700 text-white text-base font-bold z-50 transition pointer-events-auto"
       >
         ↻
       </button>
+
+      {permissionStatus === 'denied' && (
+        <div className="absolute top-16 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg shadow-md text-center">
+          <p className="text-sm">Veuillez autoriser l'accès à votre position</p>
+          <p className="text-xs mt-1">Paramètres > Confidentialité > Services de localisation</p>
+        </div>
+      )}
     </div>
   );
 }
