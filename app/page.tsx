@@ -19,6 +19,12 @@ type SignalementType = {
   label: string;
 };
 
+type StationChoice = {
+  name: string;
+  distance: number;
+  position: [number, number];
+};
+
 export default function Home() {
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const [markersCount, setMarkersCount] = useState<number>(0);
@@ -26,6 +32,9 @@ export default function Home() {
   const markersLayerRef = useRef<any>(null);
   const [permissionStatus, setPermissionStatus] = useState<string>('prompt');
   const [showTypeDialog, setShowTypeDialog] = useState(false);
+  const [showStationDialog, setShowStationDialog] = useState(false);
+  const [nearbyStations, setNearbyStations] = useState<StationChoice[]>([]);
+  const [selectedStation, setSelectedStation] = useState<StationChoice | null>(null);
   const signalementTypes: SignalementType[] = [
     { id: 'controleur', emoji: '👮', label: 'Contrôleur' },
     { id: 'poule', emoji: '🐔', label: 'Poule égarée sur les rails' },
@@ -294,9 +303,59 @@ export default function Home() {
     loadMarkers();
   }, [mapInstance]);
 
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+    const R = 6371e3; // Rayon de la terre en mètres
+    const φ1 = lat1 * Math.PI/180;
+    const φ2 = lat2 * Math.PI/180;
+    const Δφ = (lat2-lat1) * Math.PI/180;
+    const Δλ = (lon2-lon1) * Math.PI/180;
+
+    const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+            Math.cos(φ1) * Math.cos(φ2) *
+            Math.sin(Δλ/2) * Math.sin(Δλ/2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+
+    return R * c;
+  };
+
+  const findNearbyStations = () => {
+    if (!userLocation) return [];
+
+    const stations = Object.values(stationsData.features)
+      .map(station => {
+        const [lng, lat] = station.geometry.coordinates[0];
+        const distance = calculateDistance(userLocation[0], userLocation[1], lat, lng);
+        return {
+          name: station.properties.nom.split(' - ')[0],
+          distance,
+          position: [lat, lng] as [number, number]
+        };
+      })
+      .filter(station => station.distance <= 200) // Filtrer les stations à moins de 90m
+      .sort((a, b) => a.distance - b.distance);
+
+    return stations;
+  };
+
+  const handleAddSignalement = () => {
+    const stations = findNearbyStations();
+    if (stations.length === 0) {
+      alert("Aucune station à proximité (90m maximum)");
+      return;
+    }
+    setNearbyStations(stations);
+    setShowStationDialog(true);
+  };
+
+  const selectStation = (station: StationChoice) => {
+    setSelectedStation(station);
+    setShowStationDialog(false);
+    setShowTypeDialog(true);
+  };
+
   const sendSignalement = async (type: string) => {
-    if (!userLocation) {
-      alert("Position utilisateur inconnue");
+    if (!selectedStation) {
+      alert("Aucune station sélectionnée");
       return;
     }
 
@@ -304,8 +363,8 @@ export default function Home() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 
-        lat: userLocation[0], 
-        lng: userLocation[1],
+        lat: selectedStation.position[0],
+        lng: selectedStation.position[1],
         type: type 
       })
     });
@@ -316,6 +375,7 @@ export default function Home() {
     }
 
     setShowTypeDialog(false);
+    setSelectedStation(null);
     alert("Signalement envoyé !");
     await loadMarkers();
   };
@@ -336,7 +396,7 @@ export default function Home() {
       </div>
 
       <button
-        onClick={() => setShowTypeDialog(true)}
+        onClick={handleAddSignalement}
         disabled={!userLocation}
         className={`absolute bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-lg z-50 ${
           userLocation ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400'
@@ -361,6 +421,33 @@ export default function Home() {
       >
         📍
       </button>
+
+      {/* Dialog de sélection de station */}
+      {showStationDialog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
+            <h2 className="text-lg font-bold mb-4">Choisir une station</h2>
+            <div className="flex flex-col gap-2">
+              {nearbyStations.map((station) => (
+                <button
+                  key={station.name}
+                  onClick={() => selectStation(station)}
+                  className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-100 transition"
+                >
+                  <span className="text-sm font-medium">{station.name}</span>
+                  <span className="text-xs text-gray-500">{Math.round(station.distance)}m</span>
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowStationDialog(false)}
+              className="mt-4 w-full py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+            >
+              Annuler
+            </button>
+          </div>
+        </div>
+      )}
 
       {showTypeDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
