@@ -170,20 +170,65 @@ export default function Home() {
       // Trouver le type de signalement correspondant
       const signalementType = signalementTypes.find(t => t.id === m.type) || signalementTypes[0];
       
-      // Créer un div pour l'icône personnalisée
-      const iconHtml = `<div class="emoji-marker">${signalementType.emoji}</div>`;
+      // Personnaliser l'apparence de l'emoji en fonction du type
+      const iconHtml = `
+        <div class="emoji-marker" style="
+          font-size: 24px;
+          background: white;
+          border-radius: 50%;
+          width: 36px;
+          height: 36px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+          border: 2px solid ${getMarkerColor(m.type)};
+        ">
+          ${signalementType.emoji}
+        </div>
+      `;
       
       const customIcon = L.divIcon({
         html: iconHtml,
         className: 'emoji-marker-container',
-        iconSize: [32, 32],
-        iconAnchor: [16, 16]
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
       });
 
       L.marker([m.lat, m.lng], { icon: customIcon })
         .addTo(markersLayerRef.current)
-        .bindPopup(`${signalementType.emoji} ${signalementType.label}<br>Signalé à ${timeString}`);
+        .bindPopup(`
+          <div style="text-align: center;">
+            <span style="font-size: 1.5em;">${signalementType.emoji}</span>
+            <br>
+            <strong>${signalementType.label}</strong>
+            <br>
+            <small>Signalé à ${timeString}</small>
+          </div>
+        `);
     });
+  };
+
+  // Ajouter cette fonction helper juste avant le return
+  const getMarkerColor = (type: string): string => {
+    switch (type) {
+      case 'controleur':
+        return '#ff4444'; // Rouge
+      case 'poule':
+        return '#ffaa00'; // Orange
+      case 'danseur':
+        return '#ff44ff'; // Rose
+      case 'musicien':
+        return '#44ff44'; // Vert
+      case 'retard':
+        return '#ff0000'; // Rouge vif
+      case 'ventriloque':
+        return '#4444ff'; // Bleu
+      case 'magicien':
+        return '#aa44ff'; // Violet
+      default:
+        return '#888888'; // Gris par défaut
+    }
   };
 
   useEffect(() => {
