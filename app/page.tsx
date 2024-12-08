@@ -328,40 +328,47 @@ export default function Home() {
         const [lng, lat] = station.geometry.coordinates[0];
         const distance = calculateDistance(userLocation[0], userLocation[1], lat, lng);
         return {
-          name: station.properties.nom.split(' - ')[0],
+          name: station.properties.nom, // Utiliser le nom complet au lieu de le diviser
           distance,
           position: [lat, lng] as [number, number]
         };
       })
-      .filter(station => station.distance <= 150) // Rayon de 150m
+      .filter(station => station.distance <= 150)
       .sort((a, b) => a.distance - b.distance);
 
-    // Ne retourner que la station la plus proche si elle existe
     return stations.length > 0 ? [stations[0]] : [];
   };
 
   const findLineDirections = (stationName: string): LineDirection[] => {
+    console.log("Recherche des directions pour:", stationName);
     const metroLines = require('../public/metro_lines_lyon.json');
     const directions: LineDirection[] = [];
 
-    Object.entries(metroLines).forEach(([line, stations]: [string, string[]]) => {
-      // Rechercher la station complète qui commence par le nom donné
-      const fullStationName = stations.find(s => s.startsWith(stationName));
-      if (fullStationName) {
-        const stationIndex = stations.indexOf(fullStationName);
+    Object.entries(metroLines).forEach(([lineName, stations]: [string, string[]]) => {
+      console.log(`Recherche dans ${lineName}:`, stations);
+      
+      // Trouver la station qui contient le début du nom (plus flexible)
+      const stationIndex = stations.findIndex(s => 
+        s.toLowerCase().startsWith(stationName.toLowerCase().split(' ').slice(0, 3).join(' '))
+      );
+      
+      if (stationIndex !== -1) {
+        const lineNumber = lineName.split(' ')[1];
+        
         directions.push(
           {
-            name: `Direction ${stations[stations.length - 1]}`,
+            name: `Ligne ${lineNumber} → ${stations[stations.length - 1]}`,
             stations: stations.slice(stationIndex)
           },
           {
-            name: `Direction ${stations[0]}`,
+            name: `Ligne ${lineNumber} → ${stations[0]}`,
             stations: stations.slice(0, stationIndex + 1).reverse()
           }
         );
       }
     });
 
+    console.log("Directions trouvées:", directions);
     return directions;
   };
 
