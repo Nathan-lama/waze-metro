@@ -36,6 +36,43 @@ export default function Home() {
     { id: 'magicien', emoji: '🎩', label: 'Magicien qui fait des tours' },
   ];
 
+  const [userCircle, setUserCircle] = useState<any>(null);
+  const userMarkerRef = useRef<any>(null);
+
+  const updateUserLocation = (latitude: number, longitude: number, map: any) => {
+    setUserLocation([latitude, longitude]);
+
+    if (userMarkerRef.current) {
+      userMarkerRef.current.setLatLng([latitude, longitude]);
+    } else {
+      const L = require('leaflet');
+      userMarkerRef.current = L.marker([latitude, longitude], {
+        icon: L.icon({
+          iconUrl: "https://leafletjs.com/examples/custom-icons/leaf-green.png",
+          iconSize: [25, 41],
+          iconAnchor: [12, 41]
+        })
+      })
+      .addTo(map)
+      .bindPopup("Vous êtes ici");
+    }
+
+    if (userCircle) {
+      userCircle.setLatLng([latitude, longitude]);
+    } else {
+      const newCircle = L.circle([latitude, longitude], {
+        radius: 500,
+        color: '#3388ff',
+        fillColor: '#3388ff',
+        fillOpacity: 0.1,
+        weight: 1
+      }).addTo(map);
+      setUserCircle(newCircle);
+    }
+
+    map.setView([latitude, longitude], 15);
+  };
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const L = require('leaflet');
@@ -51,24 +88,11 @@ export default function Home() {
       markersLayerRef.current = L.layerGroup().addTo(map);
       setMapInstance(map);
 
-      // Demander la géolocalisation immédiatement après l'initialisation de la carte
       navigator.geolocation.getCurrentPosition(
         (position) => {
           console.log("Position obtenue:", position);
           const { latitude, longitude } = position.coords;
-          setUserLocation([latitude, longitude]);
-          map.setView([latitude, longitude], 15);
-
-          const userMarker = L.marker([latitude, longitude], {
-            icon: L.icon({
-              iconUrl: "https://leafletjs.com/examples/custom-icons/leaf-green.png",
-              iconSize: [25, 41],
-              iconAnchor: [12, 41]
-            })
-          })
-          .addTo(map)
-          .bindPopup("Vous êtes ici")
-          .openPopup();
+          updateUserLocation(latitude, longitude, map);
         },
         (error) => {
           console.log("Erreur de géolocalisation détaillée:", {
@@ -167,10 +191,8 @@ export default function Home() {
       const date = new Date(m.timestamp);
       const timeString = date.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
       
-      // Trouver le type de signalement correspondant
       const signalementType = signalementTypes.find(t => t.id === m.type) || signalementTypes[0];
       
-      // Personnaliser l'apparence de l'emoji en fonction du type
       const iconHtml = `
         <div class="emoji-marker" style="
           font-size: 24px;
@@ -209,25 +231,24 @@ export default function Home() {
     });
   };
 
-  // Ajouter cette fonction helper juste avant le return
   const getMarkerColor = (type: string): string => {
     switch (type) {
       case 'controleur':
-        return '#ff4444'; // Rouge
+        return '#ff4444';
       case 'poule':
-        return '#ffaa00'; // Orange
+        return '#ffaa00';
       case 'danseur':
-        return '#ff44ff'; // Rose
+        return '#ff44ff';
       case 'musicien':
-        return '#44ff44'; // Vert
+        return '#44ff44';
       case 'retard':
-        return '#ff0000'; // Rouge vif
+        return '#ff0000';
       case 'ventriloque':
-        return '#4444ff'; // Bleu
+        return '#4444ff';
       case 'magicien':
-        return '#aa44ff'; // Violet
+        return '#aa44ff';
       default:
-        return '#888888'; // Gris par défaut
+        return '#888888';
     }
   };
 
@@ -261,6 +282,12 @@ export default function Home() {
     await loadMarkers();
   };
 
+  const centerOnUser = () => {
+    if (userLocation && mapInstance) {
+      mapInstance.setView(userLocation, 15);
+    }
+  };
+
   return (
     <div className="relative w-screen h-screen">
       <div id="mapid" className="w-full h-full z-0" />
@@ -285,6 +312,16 @@ export default function Home() {
         className="absolute bottom-[6rem] right-7 w-10 h-10 rounded-full flex items-center justify-center shadow-md bg-green-600 hover:bg-green-700 text-white text-base font-bold z-50 transition pointer-events-auto"
       >
         ↻
+      </button>
+
+      <button
+        onClick={centerOnUser}
+        disabled={!userLocation}
+        className={`absolute bottom-[6rem] left-7 w-10 h-10 rounded-full flex items-center justify-center shadow-md ${
+          userLocation ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400'
+        } text-white text-xl font-bold z-50 transition pointer-events-auto`}
+      >
+        📍
       </button>
 
       {showTypeDialog && (
@@ -316,7 +353,7 @@ export default function Home() {
       {permissionStatus === 'denied' && (
         <div className="absolute top-16 left-1/2 transform -translate-x-1/2 bg-red-100 border border-red-400 text-red-700 px-4 py-2 rounded-lg shadow-md text-center">
           <p className="text-sm">Veuillez autoriser l'accès à votre position</p>
-          <p className="text-xs mt-1">Paramètres > Confidentialité > Services de localisation</p>
+          <p class="text-xs mt-1">Paramètres > Confidentialité > Services de localisation</p>
         </div>
       )}
     </div>
