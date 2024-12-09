@@ -395,17 +395,24 @@ export default function Home() {
 
   const sendSignalement = async (type: string) => {
     if (!selectedStation) {
-      alert("Aucune station sélectionnée");
+      alert('Aucune station sélectionnée');
       return;
     }
 
+    // Vérifier les valeurs avant l'envoi
+    console.log('Envoi du signalement:', {
+      lat: selectedStation.position[1], // Utiliser index 1 pour la latitude
+      lng: selectedStation.position[0], // Utiliser index 0 pour la longitude
+      type: type
+    });
+
     const res = await fetch('/api/markers', {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ 
-        lat: selectedStation.position[0],
-        lng: selectedStation.position[1],
-        type: type 
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lat: selectedStation.position[1], // Utiliser index 1 pour la latitude
+        lng: selectedStation.position[0], // Utiliser index 0 pour la longitude
+        type: type
       })
     });
 
@@ -430,24 +437,28 @@ export default function Home() {
     <div className="relative w-screen h-screen">
       <div id="mapid" className="w-full h-full z-0" />
 
-      <div className="absolute top-0 left-0 w-full px-4 py-3 bg-white/80 backdrop-blur-sm flex items-center justify-between z-50">
-        <h1 className="text-sm font-bold text-gray-800">Contrôleurs TCL</h1>
-        <div className="text-sm font-medium text-gray-700">Signalements : {markersCount}</div>
+      {/* Header modernisé */}
+      <div className="header-bar absolute top-0 left-0 w-full px-6 py-4 flex items-center justify-between z-50">
+        <h1 className="text-xl font-bold text-gray-900">Contrôleurs TCL</h1>
+        <div className="bg-blue-100 px-3 py-1 rounded-full text-blue-800 font-medium">
+          {markersCount} signalements
+        </div>
       </div>
 
+      {/* Boutons d'action */}
       <button
         onClick={handleAddSignalement}
         disabled={!userLocation}
-        className={`absolute bottom-6 right-6 w-14 h-14 rounded-full flex items-center justify-center shadow-lg z-50 ${
+        className={`absolute bottom-8 right-8 w-16 h-16 rounded-full shadow-lg transition-all transform hover:scale-105 ${
           userLocation ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400'
-        } text-white text-2xl font-bold transition pointer-events-auto`}
+        } text-white text-3xl font-bold flex items-center justify-center`}
       >
         +
       </button>
 
       <button
         onClick={loadMarkers}
-        className="absolute bottom-[6rem] right-7 w-10 h-10 rounded-full flex items-center justify-center shadow-md bg-green-600 hover:bg-green-700 text-white text-base font-bold z-50 transition pointer-events-auto"
+        className="absolute bottom-32 right-8 w-12 h-12 rounded-full shadow-lg bg-green-500 hover:bg-green-600 text-white flex items-center justify-center transition-all transform hover:scale-105"
       >
         ↻
       </button>
@@ -455,18 +466,18 @@ export default function Home() {
       <button
         onClick={centerOnUser}
         disabled={!userLocation}
-        className={`absolute bottom-[6rem] left-7 w-10 h-10 rounded-full flex items-center justify-center shadow-md ${
+        className={`absolute bottom-32 left-8 w-12 h-12 rounded-full shadow-lg transition-all transform hover:scale-105 ${
           userLocation ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-400'
-        } text-white text-xl font-bold z-50 transition pointer-events-auto`}
+        } text-white flex items-center justify-center`}
       >
         📍
       </button>
 
-      {/* Dialog de sélection de station */}
+      {/* Modales avec nouveau style */}
       {showStationDialog && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-            <h2 className="text-lg font-bold mb-4">Choisir une station</h2>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="dialog-content max-w-sm w-full mx-4">
+            <h2 className="dialog-title">Choisir une station</h2>
             <div className="flex flex-col gap-2">
               {nearbyStations.map((station) => (
                 <button
@@ -481,7 +492,7 @@ export default function Home() {
             </div>
             <button
               onClick={() => setShowStationDialog(false)}
-              className="mt-4 w-full py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+              className="mt-4 w-full py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
             >
               Annuler
             </button>
@@ -491,8 +502,8 @@ export default function Home() {
 
       {showDirectionDialog && selectedStation && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-            <h2 className="text-lg font-bold mb-4">Choisir une direction</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full mx-4">
+            <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-white">Choisir une direction</h2>
             <div className="flex flex-col gap-2">
               {findLineDirections(selectedStation.name).map((direction, index) => (
                 <button
@@ -506,7 +517,7 @@ export default function Home() {
             </div>
             <button
               onClick={() => setShowDirectionDialog(false)}
-              className="mt-4 w-full py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+              className="mt-4 w-full py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
             >
               Annuler
             </button>
@@ -516,8 +527,8 @@ export default function Home() {
 
       {showTypeDialog && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-sm w-full mx-4">
-            <h2 className="text-lg font-bold mb-4">Que souhaitez-vous signaler ?</h2>
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-sm w-full mx-4">
+            <h2 className="text-lg font-bold mb-4 text-gray-800 dark:text-white">Que souhaitez-vous signaler ?</h2>
             <div className="grid grid-cols-2 gap-3">
               {signalementTypes.map((type) => (
                 <button
@@ -532,7 +543,7 @@ export default function Home() {
             </div>
             <button
               onClick={() => setShowTypeDialog(false)}
-              className="mt-4 w-full py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition"
+              className="mt-4 w-full py-2 bg-gray-200 dark:bg-gray-700 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition"
             >
               Annuler
             </button>

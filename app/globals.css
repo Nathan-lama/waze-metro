@@ -2,39 +2,57 @@
 @tailwind components;
 @tailwind utilities;
 
-.station-label div {
-	transform: translateY(-50%);
-	background: #ffffff;
-	padding: 2px 6px;
-	border-radius: 4px;
-	display: inline-block;
-}
-
-.emoji-marker-container {
-	background: none !important;
-}
-
-.emoji-marker {
-	font-size: 24px;
-	text-align: center;
-	line-height: 32px;
-	text-shadow: 0 0 3px white;
-}
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
+/* Styles de base */
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --color-primary: #3B82F6;    /* Bleu vif */
+    --color-secondary: #059669;  /* Vert foncé */
+    --color-danger: #DC2626;    /* Rouge */
+    --color-warning: #F59E0B;   /* Orange */
+    --color-text: #1F2937;      /* Gris très foncé */
+  }
+
+  body {
+    @apply bg-gray-50 text-gray-900;
   }
 }
 
-body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+/* Styles pour les composants */
+.station-label div {
+  @apply bg-white text-gray-900 px-3 py-1.5 rounded-lg shadow-lg font-medium text-sm;
+  min-width: 120px;
+  text-align: center;
+}
+
+.dialog-content {
+  @apply bg-white rounded-xl shadow-2xl p-6;
+}
+
+.dialog-title {
+  @apply text-xl font-bold text-gray-900 mb-4;
+}
+
+.button-primary {
+  @apply bg-blue-600 hover:bg-blue-700 text-white font-medium px-4 py-2 rounded-lg transition-colors;
+}
+
+.button-secondary {
+  @apply bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium px-4 py-2 rounded-lg transition-colors;
+}
+
+/* Marqueurs sur la carte */
+.emoji-marker {
+  @apply flex items-center justify-center;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  border: 2px solid var(--color-primary);
+  width: 40px;
+  height: 40px;
+  font-size: 24px;
+}
+
+.header-bar {
+  @apply bg-white/90 backdrop-blur-md shadow-lg;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
 }
